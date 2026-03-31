@@ -1,1 +1,6 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* 下面原本有的程式碼不用動 */
 @import "tailwindcss";
