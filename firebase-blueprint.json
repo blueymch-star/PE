@@ -1,0 +1,61 @@
+{
+  "entities": {
+    "Equipment": {
+      "title": "Equipment",
+      "description": "Sports equipment available for loan",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "totalQuantity": { "type": "number" },
+        "availableQuantity": { "type": "number" },
+        "category": { "type": "string" }
+      },
+      "required": ["name", "totalQuantity", "availableQuantity"]
+    },
+    "Class": {
+      "title": "Class",
+      "description": "Class information for borrowing",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "className": { "type": "string" },
+        "barcode": { "type": "string" }
+      },
+      "required": ["className", "barcode"]
+    },
+    "Loan": {
+      "title": "Loan",
+      "description": "Loan records for equipment",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "classId": { "type": "string" },
+        "className": { "type": "string" },
+        "borrowerName": { "type": "string" },
+        "equipmentId": { "type": "string" },
+        "equipmentName": { "type": "string" },
+        "quantity": { "type": "number" },
+        "status": { "type": "string", "enum": ["borrowed", "returned"] },
+        "borrowedAt": { "type": "string", "format": "date-time" },
+        "returnedAt": { "type": "string", "format": "date-time" },
+        "condition": { "type": "string" }
+      },
+      "required": ["classId", "className", "borrowerName", "equipmentId", "equipmentName", "quantity", "status", "borrowedAt"]
+    }
+  },
+  "firestore": {
+    "/equipment/{equipmentId}": {
+      "schema": "Equipment",
+      "description": "Collection of sports equipment"
+    },
+    "/classes/{classId}": {
+      "schema": "Class",
+      "description": "Collection of classes"
+    },
+    "/loans/{loanId}": {
+      "schema": "Loan",
+      "description": "Collection of loan records"
+    }
+  }
+}

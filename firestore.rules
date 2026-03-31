@@ -1,0 +1,73 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    //
+    // Collection: equipment
+    // Fields:
+    //   - name: string (required)
+    //   - totalQuantity: number (required)
+    //   - availableQuantity: number (required)
+    //   - category: string (optional)
+    //
+    // Collection: classes
+    // Fields:
+    //   - className: string (required)
+    //   - barcode: string (required)
+    //
+    // Collection: loans
+    // Fields:
+    //   - classId: string (required)
+    //   - className: string (required)
+    //   - borrowerName: string (required)
+    //   - equipmentId: string (required)
+    //   - equipmentName: string (required)
+    //   - quantity: number (required)
+    //   - status: string (required, 'borrowed' or 'returned')
+    //   - borrowedAt: timestamp (required)
+    //   - returnedAt: timestamp (optional)
+    //   - condition: string (optional)
+    //
+    // ===============================================================
+
+    // Helper Functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() && 
+        (request.auth.token.email == "blueymch@gmail.com" && request.auth.token.email_verified == true);
+    }
+
+    function hasRequiredFields(fields) {
+      return request.resource.data.keys().hasAll(fields);
+    }
+
+    function hasOnlyAllowedFields(fields) {
+      return request.resource.data.keys().hasOnly(fields);
+    }
+
+    // Equipment Rules
+    match /equipment/{equipmentId} {
+      allow read: if true; // Allow public read for equipment list
+      allow write: if isAdmin(); // Only admin can manage equipment
+    }
+
+    // Classes Rules
+    match /classes/{classId} {
+      allow read: if true; // Allow public read for class verification
+      allow write: if isAdmin();
+    }
+
+    // Loans Rules
+    match /loans/{loanId} {
+      allow read: if true; // Allow public read for return process
+      allow create: if true; // Allow anyone to create a loan (simplified for school use)
+      allow update: if true; // Allow anyone to update a loan (for return process)
+      allow delete: if isAdmin();
+    }
+  }
+}

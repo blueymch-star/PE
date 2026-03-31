@@ -1,0 +1,7 @@
+{
+  "name": "體育器材自助借還系統",
+  "description": "提供班級自助借用與歸還體育器材的網頁應用程式，支援條碼掃描與 Firebase 即時資料同步。",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
