@@ -25,7 +25,7 @@ import {
   User 
 } from 'firebase/auth';
 import { db, auth } from './firebase';
-import { Html5QrcodeScanner } from 'html5-qrcode';
+import { Html5Qrcode } from 'html5-qrcode';
 import Papa from 'papaparse';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
@@ -108,7 +108,7 @@ export default function App() {
   const [activeLoans, setActiveLoans] = useState<Loan[]>([]);
   const [returningItems, setReturningItems] = useState<{ [id: string]: { quantity: number, condition: string } }>({});
 
-  const scannerRef = useRef<Html5QrcodeScanner | null>(null);
+  const scannerRef = useRef<Html5Qrcode | null>(null);
 
   // Management State
   const [isEditing, setIsEditing] = useState<string | null>(null); // ID of item being edited
@@ -164,23 +164,38 @@ export default function App() {
   };
 
   const startScanner = (onScan: (decodedText: string) => void) => {
-    setTimeout(() => {
-      const scanner = new Html5QrcodeScanner(
-        "reader",
+    // Stop existing scanner if any
+    const setupScanner = () => {
+      const scanner = new Html5Qrcode("reader");
+      scanner.start(
+        { facingMode: "environment" },
         { fps: 10, qrbox: { width: 250, height: 250 } },
-        /* verbose= */ false
-      );
-      scanner.render(onScan, (err) => {
-        // console.warn(err);
+        onScan,
+        (err) => {
+          // console.warn(err);
+        }
+      ).catch(err => {
+        console.error("Failed to start scanner", err);
+        setNotification({ message: '無法啟動相機，請確認權限', type: 'error' });
       });
       scannerRef.current = scanner;
-    }, 100);
+    };
+
+    if (scannerRef.current) {
+      scannerRef.current.stop().then(setupScanner).catch(setupScanner);
+    } else {
+      setTimeout(setupScanner, 100);
+    }
   };
 
   const stopScanner = () => {
     if (scannerRef.current) {
-      scannerRef.current.clear().catch(err => console.error("Failed to clear scanner", err));
-      scannerRef.current = null;
+      scannerRef.current.stop().then(() => {
+        scannerRef.current = null;
+      }).catch(err => {
+        // If it's already stopped or not scanning, just clear the ref
+        scannerRef.current = null;
+      });
     }
   };
 
@@ -381,7 +396,8 @@ export default function App() {
               const location = row.location || row['存放位置'] || '';
               batch.set(ref, { name, totalQuantity: totalQty, availableQuantity: totalQty, category, location });
             } else {
-              const className = row.className || row['班級名稱'] || row['班級'] || '未命名班級';
+              let className = row.className || row['班級名稱'] || row['班級'] || '未命名班級';
+              className = className.replace(/班/g, '').trim();
               const barcode = row.barcode || row['條碼編號'] || row['條碼'] || '';
               batch.set(ref, { className, barcode });
             }
@@ -407,7 +423,8 @@ export default function App() {
   const handleAddClass = async () => {
     if (!newClass.className || !newClass.barcode) return;
     try {
-      await addDoc(collection(db, 'classes'), newClass);
+      const cleanName = newClass.className.replace(/班/g, '').trim();
+      await addDoc(collection(db, 'classes'), { ...newClass, className: cleanName });
       setNewClass({ className: '', barcode: '' });
     } catch (error) {
       console.error('Add class failed:', error);
@@ -728,7 +745,7 @@ export default function App() {
                     <p className="text-slate-500 text-sm">掃描借用證條碼或輸入班級編號</p>
                   </div>
 
-                  <div id="reader" className="overflow-hidden rounded-2xl border-2 border-dashed border-slate-200 bg-white" />
+                  <div id="reader" className="overflow-hidden rounded-2xl border-2 border-dashed border-slate-200 bg-white min-h-[300px]" />
                   
                   <div className="relative">
                     <div className="absolute inset-0 flex items-center">
@@ -914,7 +931,7 @@ export default function App() {
                     <p className="text-slate-500 text-sm">掃描借用證條碼或輸入班級編號</p>
                   </div>
 
-                  <div id="reader" className="overflow-hidden rounded-2xl border-2 border-dashed border-slate-200 bg-white" />
+                  <div id="reader" className="overflow-hidden rounded-2xl border-2 border-dashed border-slate-200 bg-white min-h-[300px]" />
                   
                   <div className="flex gap-2">
                     <input 
@@ -1099,7 +1116,7 @@ export default function App() {
                 <div className="flex flex-col sm:flex-row items-center gap-6">
                   <div className="p-3 bg-white rounded-xl shadow-inner">
                     <QRCodeSVG 
-                      value="https://ais-pre-knm6pan4fvhcokj3p5wuzx-338719927639.asia-northeast1.run.app" 
+                      value={window.location.origin} 
                       size={120}
                       level="H"
                       includeMargin={false}
@@ -1110,10 +1127,10 @@ export default function App() {
                       掃描 QR Code 或在平板瀏覽器輸入網址，即可在平板上測試借還功能：
                     </p>
                     <div className="flex items-center gap-2 p-2.5 bg-slate-800 rounded-xl border border-slate-700 font-mono text-[10px] break-all">
-                      <span className="flex-1 text-blue-300">https://ais-pre-knm6pan4fvhcokj3p5wuzx-338719927639.asia-northeast1.run.app</span>
+                      <span className="flex-1 text-blue-300">{window.location.origin}</span>
                       <button 
                         onClick={() => {
-                          navigator.clipboard.writeText("https://ais-pre-knm6pan4fvhcokj3p5wuzx-338719927639.asia-northeast1.run.app");
+                          navigator.clipboard.writeText(window.location.origin);
                           setNotification({ message: '網址已複製', type: 'success' });
                         }}
                         className="p-1.5 hover:bg-slate-700 rounded-lg transition-colors text-slate-400"
